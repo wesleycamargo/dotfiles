@@ -2,10 +2,16 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 
 #Basic
 choco install visualstudiocode -y
-choco install googlechrome -y
+choco install azure-cli -y
 
-#Dev Tools
+# Tools Configuration
 choco install git -y
+git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+
+
+choco install googlechrome -y
+#Dev Tools
+
 choco install gitextensions -y
 
 ## uncomment following lines to change VS Version
@@ -17,7 +23,7 @@ choco install nodejs.install -y
 choco install docker-desktop -y
 choco install docker-kitematic -y
 
-choco install azure-cli -y
+
 choco install azure-data-studio -y
 choco install fiddler4 -y
 
@@ -31,8 +37,6 @@ choco install zoomit -y
 choco install spotify -y
 choco install winrar -y
 
-# Tools Configuration
-git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 
 #Environment Stuff
 
