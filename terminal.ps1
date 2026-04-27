@@ -81,6 +81,7 @@ function Set-GitAliases {
 # Main
 ################################
 Install-NerdFont -Force:$Force
+Install-Module Terminal-Icons -Force
 Import-Module Terminal-Icons
 Install-OhMyPosh -Force:$Force
 Initialize-OhMyPosh
