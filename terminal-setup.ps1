@@ -56,6 +56,8 @@ function Install-OhMyPosh {
     }
     else {
         curl -s https://ohmyposh.dev/install.sh | bash
+        # Refresh PATH so the newly installed binary is discoverable in this session
+        $env:PATH = "/usr/local/bin:$env:PATH"
     }
 }
 
