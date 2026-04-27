@@ -181,6 +181,16 @@ function Set-GitAliases {
     git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 }
 
+function Set-GitLineEndings {
+    Write-Host 'Configuring git line endings (core.autocrlf)...'
+    if ($IsWindows) {
+        git config --global core.autocrlf true
+    }
+    else {
+        git config --global core.autocrlf input
+    }
+}
+
 ################################
 # Main
 ################################
@@ -193,5 +203,6 @@ Import-Module Terminal-Icons
 Install-OhMyPosh -Force:$Force
 Initialize-OhMyPosh
 Set-GitAliases -Force:$Force
+Set-GitLineEndings
 
 Write-Host 'Terminal setup complete.'
