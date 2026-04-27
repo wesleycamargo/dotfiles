@@ -56,13 +56,25 @@ function Install-OhMyPosh {
     }
     else {
         curl -s https://ohmyposh.dev/install.sh | bash
-        # Refresh PATH so the newly installed binary is discoverable in this session
-        $env:PATH = "/usr/local/bin:$env:PATH"
     }
 }
 
 function Initialize-OhMyPosh {
     $theme = 'https://gist.githubusercontent.com/wesleycamargo/06b58b472fe0cded2e6d6451ea0778bd/raw/1c952297121a50826ef6f849bb7ee8c11d8e09a6/oh-my-posh-az-cli-az-pwsh.json'
+
+    $ompCmd = Get-Command 'oh-my-posh' -ErrorAction SilentlyContinue
+    if (-not $ompCmd -and $IsLinux) {
+        # Common install locations when PATH hasn't been refreshed yet
+        $candidates = @('/usr/local/bin/oh-my-posh', "$HOME/.local/bin/oh-my-posh")
+        $ompBin = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+        if ($ompBin) {
+            $env:PATH = "$(Split-Path $ompBin):$env:PATH"
+        } else {
+            Write-Warning 'oh-my-posh binary not found, skipping prompt init.'
+            return
+        }
+    }
+
     oh-my-posh init pwsh --config $theme | Invoke-Expression
 }
 
