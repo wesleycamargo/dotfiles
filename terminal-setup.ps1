@@ -188,6 +188,9 @@ function Set-GitLineEndings {
     }
     else {
         git config --global core.autocrlf input
+        # Renormalize existing files to strip CRLF from the working tree
+        Write-Host 'Renormalizing line endings in working tree...'
+        git add --renormalize .
     }
 }
 
