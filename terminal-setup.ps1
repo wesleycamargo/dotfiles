@@ -69,13 +69,16 @@ function Initialize-OhMyPosh {
         $ompBin = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
         if ($ompBin) {
             $env:PATH = "$(Split-Path $ompBin):$env:PATH"
-        } else {
+        }
+        else {
             Write-Warning 'oh-my-posh binary not found, skipping prompt init.'
             return
         }
     }
 
-    oh-my-posh init pwsh --config $theme | Invoke-Expression
+    $profileDir = Split-Path $PROFILE.AllUsersAllHosts
+    New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+    Set-Content $PROFILE.AllUsersAllHosts "oh-my-posh init pwsh --config '$theme' | Invoke-Expression"
 }
 
 function Set-GitAliases {
