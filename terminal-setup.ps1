@@ -1,214 +1,162 @@
-#Requires -Version 5.1
+#Requires -Version 7.0
+
 [CmdletBinding()]
 param(
-    [switch]$Force
+    [switch]$Force,
+    [switch]$DevContainer
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Determine if sudo is needed (Linux non-root only)
-$isRoot = $IsLinux -and ((& id -u) -eq '0')
-$useSudo = $IsLinux -and -not $isRoot
-
-function Invoke-Sudo {
-    param([string]$Cmd, [string[]]$Args)
-    if ($useSudo) { & sudo $Cmd @Args } else { & $Cmd @Args }
-}
-
-function Install-DevTools {
-    param([switch]$Force)
-
-    Write-Host 'Installing dev tools...'
-    if ($IsWindows) {
-        winget install --id Git.Git -e --source winget
-        winget install --id GitExtensionsTeam.GitExtensions -e --source winget
-    }
-    elseif ($IsLinux) {
-        if (Get-Command apt-get -ErrorAction SilentlyContinue) {
-            Invoke-Sudo apt-get @('update')
-            Invoke-Sudo apt-get @('install', '-y', 'git')
-        }
-        elseif (Get-Command dnf -ErrorAction SilentlyContinue) {
-            Invoke-Sudo dnf @('install', '-y', 'git')
-        }
-        elseif (Get-Command brew -ErrorAction SilentlyContinue) {
-            brew install git
-        }
-        # GitExtensions is Windows-only, skipping
-    }
-}
-
-function Install-AzureCLI {
-    param([switch]$Force)
-
-    $alreadyInstalled = $null -ne (Get-Command 'az' -ErrorAction SilentlyContinue)
-    if ($alreadyInstalled -and -not $Force) {
-        Write-Host 'Azure CLI already installed, skipping. Use -Force to reinstall.'
-        return
-    }
-
-    Write-Host 'Installing Azure CLI...'
-    if ($IsWindows) {
-        winget install --id Microsoft.AzureCLI -e --source winget
-    }
-    elseif ($IsLinux) {
-        if (Get-Command apt-get -ErrorAction SilentlyContinue) {
-            $installScript = & curl -fsSL https://aka.ms/InstallAzureCLIDeb
-            if ($useSudo) { $installScript | sudo bash } else { $installScript | bash }
-        }
-        elseif (Get-Command dnf -ErrorAction SilentlyContinue) {
-            Invoke-Sudo rpm @('--import', 'https://packages.microsoft.com/keys/microsoft.asc')
-            Invoke-Sudo dnf @('install', '-y', 'azure-cli')
-        }
-        elseif (Get-Command brew -ErrorAction SilentlyContinue) {
-            brew install azure-cli
-        }
-    }
-}
-
-function Install-PowerShellModules {
-    param([switch]$Force)
-
-    Write-Host 'Installing PowerShell modules...'
-    if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-        Register-PSRepository -Default
-    }
-    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
-    Install-Module -Name Az     -Force:$Force -AllowClobber
-    Install-Module -Name Pester -Force:$Force -AllowClobber -SkipPublisherCheck
-}
-
-function Install-NerdFont {
-    param([switch]$Force)
-
-    if ($IsWindows) {
-        $fontsDir = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
-        $tempZip = "$env:TEMP\Meslo.zip"
-        $tempDir = "$env:TEMP\Meslo"
-    }
-    else {
-        $fontsDir = "$HOME/.local/share/fonts/nerd-fonts"
-        $tempZip = '/tmp/Meslo.zip'
-        $tempDir = '/tmp/Meslo'
-    }
-
-    $alreadyInstalled = Test-Path (Join-Path $fontsDir 'MesloLGMNerdFont-Regular.ttf')
-    if ($alreadyInstalled -and -not $Force) {
-        Write-Host 'MesloLGM Nerd Font already installed, skipping. Use -Force to reinstall.'
-        return
-    }
-
-    Write-Host 'Installing MesloLGM Nerd Font...'
-    New-Item -ItemType Directory -Force -Path $fontsDir | Out-Null
-    Invoke-WebRequest -Uri 'https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip' -OutFile $tempZip
-    Expand-Archive -Path $tempZip -DestinationPath $tempDir -Force
-    Get-ChildItem -Path $tempDir -Filter '*.ttf' | ForEach-Object {
-        Copy-Item -Path $_.FullName -Destination $fontsDir -Force
-    }
-    Remove-Item -Path $tempZip, $tempDir -Recurse -Force
-
-    if ($IsLinux) {
-        & fc-cache -fv
-    }
-}
+$ThemeUrl = 'https://gist.githubusercontent.com/wesleycamargo/06b58b472fe0cded2e6d6451ea0778bd/raw/1c952297121a50826ef6f849bb7ee8c11d8e09a6/oh-my-posh-az-cli-az-pwsh.json'
 
 function Install-OhMyPosh {
-    param([switch]$Force)
+    $existing = Get-Command oh-my-posh -ErrorAction SilentlyContinue
 
-    $alreadyInstalled = $null -ne (Get-Command 'oh-my-posh' -ErrorAction SilentlyContinue)
-    if ($alreadyInstalled -and -not $Force) {
-        Write-Host 'Oh My Posh already installed, skipping. Use -Force to reinstall.'
+    if ($existing -and -not $Force) {
+        Write-Host "Oh My Posh already installed: $($existing.Source)"
         return
     }
 
     Write-Host 'Installing Oh My Posh...'
+
     if ($IsWindows) {
         winget install JanDeDobbeleer.OhMyPosh --source winget
     }
     else {
-        curl -s https://ohmyposh.dev/install.sh | bash
+        curl -s https://ohmyposh.dev/install.sh | bash -s
     }
 }
 
-function Initialize-OhMyPosh {
-    $theme = 'https://gist.githubusercontent.com/wesleycamargo/06b58b472fe0cded2e6d6451ea0778bd/raw/1c952297121a50826ef6f849bb7ee8c11d8e09a6/oh-my-posh-az-cli-az-pwsh.json'
+function Get-OhMyPoshPath {
+    $command = Get-Command oh-my-posh -ErrorAction SilentlyContinue
 
-    $ompCmd = Get-Command 'oh-my-posh' -ErrorAction SilentlyContinue
-    if (-not $ompCmd) {
-        if ($IsLinux) {
-            # Common install locations when PATH hasn't been refreshed yet
-            $candidates = @('/usr/local/bin/oh-my-posh', "$HOME/.local/bin/oh-my-posh")
-            $ompBin = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-            if ($ompBin) {
-                $env:PATH = "$(Split-Path $ompBin):$env:PATH"
-            }
-            else {
-                Write-Warning 'oh-my-posh binary not found, skipping prompt init.'
-                return
-            }
+    if ($command) {
+        return $command.Source
+    }
+
+    $candidates = @(
+        '/usr/local/bin/oh-my-posh',
+        "$HOME/.local/bin/oh-my-posh",
+        "$HOME/bin/oh-my-posh"
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    throw 'Oh My Posh was not found after installation.'
+}
+
+function Install-TerminalIcons {
+    $existing = Get-Module -ListAvailable -Name Terminal-Icons
+
+    if ($existing -and -not $Force) {
+        Write-Host 'Terminal-Icons already installed.'
+        return
+    }
+
+    Write-Host 'Installing Terminal-Icons...'
+
+    if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+        Register-PSRepository -Default
+    }
+
+    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+
+    Install-Module Terminal-Icons -Scope CurrentUser -Force
+}
+
+function Get-ProfileConfiguration {
+    $ohMyPoshPath = Get-OhMyPoshPath
+
+    if ($DevContainer) {
+        $configDir = Join-Path $HOME '.config/oh-my-posh'
+        $themePath = Join-Path $configDir 'theme.omp.json'
+
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+
+        if ((Test-Path $themePath) -and -not $Force) {
+            Write-Host "Oh My Posh theme already exists: $themePath"
         }
         else {
-            Write-Warning 'oh-my-posh binary not found, skipping prompt init.'
-            return
+            Write-Host "Downloading Oh My Posh theme to: $themePath"
+            Invoke-WebRequest -Uri $ThemeUrl -OutFile $themePath
+        }
+
+        return @{
+            ProfilePath = $PROFILE.CurrentUserAllHosts
+            ConfigPath  = $themePath
+            OhMyPosh    = $ohMyPoshPath
         }
     }
 
-    $profileDir = Split-Path $PROFILE.AllUsersAllHosts
-    New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+    return @{
+        ProfilePath = $PROFILE.CurrentUserAllHosts
+        ConfigPath  = $ThemeUrl
+        OhMyPosh    = $ohMyPoshPath
+    }
+}
 
-    # On Linux, embed the resolved full path so the profile works in new sessions
-    # regardless of whether PATH includes the oh-my-posh install directory
-    if ($IsLinux) {
-        $ompPath = (Get-Command 'oh-my-posh').Source
-        Set-Content $PROFILE.AllUsersAllHosts "& '$ompPath' init pwsh --config '$theme' | Invoke-Expression"
+function Set-PowerShellProfile {
+    $config = Get-ProfileConfiguration
+
+    $profilePath = $config.ProfilePath
+    $profileDir = Split-Path $profilePath
+
+    New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+
+    if ($IsWindows -and -not $DevContainer) {
+        $initLine = "oh-my-posh init pwsh --config '$($config.ConfigPath)' | Invoke-Expression"
     }
     else {
-        Set-Content $PROFILE.AllUsersAllHosts "oh-my-posh init pwsh --config '$theme' | Invoke-Expression"
+        $initLine = "& '$($config.OhMyPosh)' init pwsh --config '$($config.ConfigPath)' | Invoke-Expression"
     }
+
+    $profileContent = @"
+# Terminal Icons
+if (Get-Module -ListAvailable -Name Terminal-Icons) {
+    Import-Module Terminal-Icons
+}
+
+# Oh My Posh
+$initLine
+"@
+
+    Set-Content -Path $profilePath -Value $profileContent
+
+    Write-Host "PowerShell profile configured: $profilePath"
 }
 
 function Set-GitAliases {
-    param([switch]$Force)
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Host 'Git not found. Skipping git aliases.'
+        return
+    }
 
-    $existing = git config --global alias.lg 2>$null
-    if ($existing -and -not $Force) {
-        Write-Host 'Git alias "lg" already configured, skipping. Use -Force to reconfigure.'
+    $existingAlias = git config --global alias.lg 2>$null
+
+    if ($existingAlias -and -not $Force) {
+        Write-Host 'Git alias "lg" already configured.'
         return
     }
 
     Write-Host 'Configuring git aliases...'
+
     git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 }
 
-function Set-GitLineEndings {
-    Write-Host 'Configuring git line endings (core.autocrlf)...'
-    if ($IsWindows) {
-        git config --global core.autocrlf true
-    }
-    else {
-        git config --global core.autocrlf input
-        # Renormalize existing files to strip CRLF from the working tree
-        Write-Host 'Renormalizing line endings in working tree...'
-        git add --renormalize .
-    }
+Install-OhMyPosh
+Install-TerminalIcons
+Set-PowerShellProfile
+Set-GitAliases
+
+if ($DevContainer) {
+    Write-Host 'Devcontainer terminal setup complete.'
 }
-
-################################
-# Main — skipped when dot-sourced (e.g. from tests)
-################################
-if ($MyInvocation.InvocationName -ne '.') {
-    Install-DevTools -Force:$Force
-    Install-AzureCLI -Force:$Force
-    Install-PowerShellModules -Force:$Force
-    Install-NerdFont -Force:$Force
-    Install-Module Terminal-Icons -Force
-    Import-Module Terminal-Icons
-    Install-OhMyPosh -Force:$Force
-    Initialize-OhMyPosh
-    Set-GitAliases -Force:$Force
-    Set-GitLineEndings
-
+else {
     Write-Host 'Terminal setup complete.'
 }

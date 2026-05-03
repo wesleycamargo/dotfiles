@@ -3,6 +3,7 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
+    "remoteUser": "vscode",
     "features": {
         "ghcr.io/devcontainers/features/common-utils:2": {
             "installZsh": "true",
@@ -11,11 +12,20 @@
             "nonFreePackages": "true"
         }
     },
-    "postCreateCommand": "sudo chsh vscode -s \"$(which pwsh)\"",
+    "mounts": [
+        "source=${localEnv:HOME}/.gitconfig,target=/tmp/host-gitconfig,type=bind,consistency=cached",
+        "source=${localEnv:HOME}/.git-credentials,target=/tmp/host-git-credentials,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "cp /tmp/host-gitconfig ~/.gitconfig 2>/dev/null || true; cp /tmp/host-git-credentials ~/.git-credentials 2>/dev/null || true; chmod 600 ~/.git-credentials 2>/dev/null || true; pwsh -NoProfile -File ./terminal-setup.ps1 -DevContainer && sudo chsh vscode -s \"$(which pwsh)\"",
     "customizations": {
         "vscode": {
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "pwsh",
+                "terminal.integrated.profiles.linux": {
+                    "pwsh": {
+                        "path": "pwsh"
+                    }
+                },
                 "terminal.integrated.fontFamily": "MesloLGM Nerd Font"
             },
             "extensions": [
@@ -23,11 +33,5 @@
                 "anthropic.claude-code"
             ]
         }
-    },
-    "initializeCommand": "cp \"$(wslpath \"$(wslvar USERPROFILE)\")/.git-credentials\" ~/.git-credentials 2>/dev/null || touch ~/.git-credentials",
-    "mounts": [
-        "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached",
-        "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached",
-        "source=${localEnv:HOME}/.git-credentials,target=/root/.git-credentials,type=bind,consistency=cached"
-    ]
+    }
 }
