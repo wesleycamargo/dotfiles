@@ -76,7 +76,8 @@ function Install-PowerShellModules {
     }
     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 
-    Install-Module -Name Az -Force:$Force -AllowClobber
+    Install-Module -Name Az     -Force:$Force -AllowClobber
+    Install-Module -Name Pester -Force:$Force -AllowClobber -SkipPublisherCheck
 }
 
 function Install-NerdFont {
@@ -195,17 +196,19 @@ function Set-GitLineEndings {
 }
 
 ################################
-# Main
+# Main — skipped when dot-sourced (e.g. from tests)
 ################################
-Install-DevTools -Force:$Force
-Install-AzureCLI -Force:$Force
-Install-PowerShellModules -Force:$Force
-Install-NerdFont -Force:$Force
-Install-Module Terminal-Icons -Force
-Import-Module Terminal-Icons
-Install-OhMyPosh -Force:$Force
-Initialize-OhMyPosh
-Set-GitAliases -Force:$Force
-Set-GitLineEndings
+if ($MyInvocation.InvocationName -ne '.') {
+    Install-DevTools -Force:$Force
+    Install-AzureCLI -Force:$Force
+    Install-PowerShellModules -Force:$Force
+    Install-NerdFont -Force:$Force
+    Install-Module Terminal-Icons -Force
+    Import-Module Terminal-Icons
+    Install-OhMyPosh -Force:$Force
+    Initialize-OhMyPosh
+    Set-GitAliases -Force:$Force
+    Set-GitLineEndings
 
-Write-Host 'Terminal setup complete.'
+    Write-Host 'Terminal setup complete.'
+}
