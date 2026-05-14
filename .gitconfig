@@ -1,7 +1,5 @@
 [user]
 	email = camargo.wes@gmail.com
 	name = Wesley Camargo
-[safe]
-	directory = C:/repos/wes/bot-poc
 [alias]
 	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
