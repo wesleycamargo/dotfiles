@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-set -eu
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
-exec sh "$SCRIPT_DIR/install.sh"
