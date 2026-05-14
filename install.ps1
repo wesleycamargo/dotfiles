@@ -11,22 +11,22 @@ $ErrorActionPreference = 'Stop'
 
 $ThemeUrl = 'https://gist.githubusercontent.com/wesleycamargo/06b58b472fe0cded2e6d6451ea0778bd/raw/1c952297121a50826ef6f849bb7ee8c11d8e09a6/oh-my-posh-az-cli-az-pwsh.json'
 
-function Install-SystemDependencies {
-    if ($IsWindows) { return }
+# function Install-SystemDependencies {
+#     if ($IsWindows) { return }
 
-    if (-not (Get-Command apt-get -ErrorAction SilentlyContinue)) { return }
+#     if (-not (Get-Command apt-get -ErrorAction SilentlyContinue)) { return }
 
-    Write-Host 'Checking system dependencies...'
+#     Write-Host 'Checking system dependencies...'
 
-    $needed = @('curl', 'unzip', 'git', 'fontconfig', 'ca-certificates') |
-    Where-Object { -not (Get-Command $_ -ErrorAction SilentlyContinue) }
+#     $needed = @('curl', 'unzip', 'git', 'fontconfig', 'ca-certificates') |
+#     Where-Object { -not (Get-Command $_ -ErrorAction SilentlyContinue) }
 
-    if ($needed) {
-        Write-Host "Installing: $($needed -join ', ')"
-        apt-get update -qq
-        apt-get install -y $needed | Out-Null
-    }
-}
+#     if ($needed) {
+#         Write-Host "Installing: $($needed -join ', ')"
+#         apt-get update -qq
+#         apt-get install -y $needed | Out-Null
+#     }
+# }
 
 function Install-OhMyPosh {
     $existing = Get-Command oh-my-posh -ErrorAction SilentlyContinue
@@ -68,24 +68,24 @@ function Get-OhMyPoshPath {
     throw 'Oh My Posh was not found after installation.'
 }
 
-function Install-TerminalIcons {
-    $existing = Get-Module -ListAvailable -Name Terminal-Icons
+# function Install-TerminalIcons {
+#     $existing = Get-Module -ListAvailable -Name Terminal-Icons
 
-    if ($existing -and -not $Force) {
-        Write-Host 'Terminal-Icons already installed.'
-        return
-    }
+#     if ($existing -and -not $Force) {
+#         Write-Host 'Terminal-Icons already installed.'
+#         return
+#     }
 
-    Write-Host 'Installing Terminal-Icons...'
+#     Write-Host 'Installing Terminal-Icons...'
 
-    if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
-        Register-PSRepository -Default
-    }
+#     if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) {
+#         Register-PSRepository -Default
+#     }
 
-    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+#     Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 
-    Install-Module Terminal-Icons -Scope CurrentUser -Force
-}
+#     Install-Module Terminal-Icons -Scope CurrentUser -Force
+# }
 
 function Get-ProfileConfiguration {
     $ohMyPoshPath = Get-OhMyPoshPath
@@ -166,9 +166,10 @@ function Set-GitAliases {
     git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 }
 
-Install-SystemDependencies
+# Install-SystemDependencies
+# Install-TerminalIcons
+
 Install-OhMyPosh
-Install-TerminalIcons
 Set-PowerShellProfile
 Set-GitAliases
 
