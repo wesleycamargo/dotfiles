@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env sh
+set -eu
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
 echo "Installing personal dotfiles from $DOTFILES_DIR"
 
