@@ -138,21 +138,65 @@ Write-Host ''
 Install-NpmPackages
 Write-Host ''
 
-# Copy dotfiles from remote repository
-$copyDotfilesScript = Join-Path $PSScriptRoot 'Copy-Dotfiles.ps1'
-$remoteCopyConfigPath = Join-Path $PSScriptRoot 'remote-copy-config.json'
-$workspaceRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+# Copy dotfiles to their target locations
+Write-Host 'Copying dotfiles to system locations...' -ForegroundColor Cyan
 
-if (Test-Path $copyDotfilesScript) {
-    Write-Host 'Copying dotfiles from remote repository...' -ForegroundColor Cyan
-    & $copyDotfilesScript -ConfigPath $remoteCopyConfigPath -LocalRoot $workspaceRoot -OnExists $ExistingFileAction
-    Write-Host ''
+$dotfiles = @(
+    @{
+        Source = Join-Path $PSScriptRoot 'Microsoft.VSCode_profile.ps1'
+        Target = $PROFILE.CurrentUserAllHosts
+        Label  = 'PowerShell Profile'
+    }
+    @{
+        Source = Join-Path $PSScriptRoot '.gitconfig'
+        Target = Join-Path $HOME '.gitconfig'
+        Label  = 'Git Config'
+    }
+)
+
+foreach ($dotfile in $dotfiles) {
+    if (-not (Test-Path $dotfile.Source)) {
+        Write-Warning "$($dotfile.Label) not found at: $($dotfile.Source)"
+        continue
+    }
+
+    $targetDir = Split-Path -Path $dotfile.Target -Parent
+    if ($targetDir -and -not (Test-Path $targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+
+    $sourceContent = Get-Content -Path $dotfile.Source -Raw
+
+    if (Test-Path $dotfile.Target) {
+        $existingContent = Get-Content -Path $dotfile.Target -Raw
+
+        switch ($ExistingFileAction) {
+            'Keep' {
+                Write-Host "$($dotfile.Label) already exists. Keeping existing file: $($dotfile.Target)"
+                continue
+            }
+            'Append' {
+                if ($existingContent -and $existingContent.Contains($sourceContent.Trim())) {
+                    Write-Host "$($dotfile.Label) already contains the configuration. Skipping."
+                    continue
+                }
+                Write-Host "Appending to existing $($dotfile.Label): $($dotfile.Target)"
+                Add-Content -Path $dotfile.Target -Value "`n$sourceContent"
+                Write-Host "$($dotfile.Label) configured: $($dotfile.Target)"
+                continue
+            }
+            'Override' {
+                Write-Host "Overriding existing $($dotfile.Label): $($dotfile.Target)"
+            }
+        }
+    }
+
+    Copy-Item -Path $dotfile.Source -Destination $dotfile.Target -Force
+    Write-Host "$($dotfile.Label) copied: $($dotfile.Target)"
 }
-else {
-    Write-Warning "Copy-Dotfiles.ps1 not found at: $copyDotfilesScript"
-    Write-Warning "Skipping dotfiles copy."
-    Write-Host ''
-}
+
+Write-Host 'Dotfiles copy complete.' -ForegroundColor Green
+Write-Host ''
 
 # Final message
 if ($DevContainer) {
